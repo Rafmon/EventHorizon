@@ -21,7 +21,6 @@
   "SystemConfigurationTitle": "Configuration du système",
 
   "TimelineDurationLabel": "Durée de la chronologie en secondes",
-  "SimulateI2CLabel": "Simuler les appareils I2C",
   "ExportEventsButton": "Exporter events.json",
   "ImportEventsLabel": "Importer des événements",
 
@@ -40,5 +39,7 @@
   "MemoryListLabel": "Adresses de mémoire :",
   "MemoryAddressLabel": "Adresse",
   "MemoryNameLabel": "Nom",
-  "MemoryIsActiveLabel": "Actif"
+  "MemoryIsActiveLabel": "Actif",
+  "MemoryStatusConnected": "Connecté",
+  "MemoryStatusSimulated": "Simulé"
 }

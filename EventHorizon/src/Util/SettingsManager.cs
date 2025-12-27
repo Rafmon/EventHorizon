@@ -8,7 +8,6 @@ namespace EventHorizon.src.Util
         private readonly IServiceScopeFactory _scopeFactory;
 
 
-        public bool SimulateI2CDevices { get; set; } = false;
         public int TimelineDuration { get; set; } = 180;
 
         public SettingsManager(IServiceScopeFactory scopeFactory)
@@ -17,14 +16,6 @@ namespace EventHorizon.src.Util
             Console.WriteLine("Loading Configuration");
             LoadSettings();
 
-            foreach (String arg in Environment.GetCommandLineArgs())
-            {
-                if (arg.Contains("--simulateI2C") && !SimulateI2CDevices)
-                {
-                    SimulateI2CDevices = true;
-                    Console.WriteLine("Simulating I2CDevices");
-                }
-            }
         }
 
         public void SaveSettings()
@@ -37,14 +28,12 @@ namespace EventHorizon.src.Util
                 settingsEntity = new Settings
                 {
                     Id = 1,
-                    SimulateI2CDevices = SimulateI2CDevices,
                     TimelineDuration = TimelineDuration
                 };
                 dbContext.Settings.Add(settingsEntity);
             }
             else
             {
-                settingsEntity.SimulateI2CDevices = SimulateI2CDevices;
                 settingsEntity.TimelineDuration = TimelineDuration;
                 dbContext.Settings.Update(settingsEntity);
             }
@@ -62,7 +51,6 @@ namespace EventHorizon.src.Util
             var settingsEntity = dbContext.Settings.AsNoTracking().FirstOrDefault(s => s.Id == 1);
             if (settingsEntity != null)
             {
-                SimulateI2CDevices = settingsEntity.SimulateI2CDevices;
                 TimelineDuration = settingsEntity.TimelineDuration;
                 Console.WriteLine("Settings loaded.");
             }
