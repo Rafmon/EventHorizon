@@ -3,7 +3,7 @@ name: Build and Push Multi-Platform Docker Images
 on:
   push:
     branches:
-      - main
+      - '**'     
   pull_request:
     branches:
       - main
@@ -15,12 +15,12 @@ jobs:
     strategy:
       matrix:
         include:
-        - platform: linux/amd64
-          runtime: linux-x64
-        - platform: linux/arm/v7
-          runtime: linux-arm
-        - platform: linux/arm64
-          runtime: linux-arm64
+          - platform: linux/amd64
+            runtime: linux-x64
+          - platform: linux/arm/v7
+            runtime: linux-arm
+          - platform: linux/arm64
+            runtime: linux-arm64
 
     steps:
       - name: Checkout code
@@ -31,20 +31,35 @@ jobs:
         with:
           dotnet-version: '8.0.x'
 
-      # Build the application
       - name: Build and Package Application
         run: |
           dotnet publish ./EventHorizon/EventHorizon.csproj -c Release -r ${{ matrix.runtime }} --self-contained false -o ./output/${{ matrix.runtime }}
-      # Log in to Docker registry
+
+      - name: Compute image tags
+        id: tags
+        shell: bash
+        run: |
+          BRANCH="${GITHUB_REF_NAME}"
+          SAFE_BRANCH="$(echo "$BRANCH" | tr '/@' '--' | tr -cd '[:alnum:]._-' )"
+
+          if [ "$BRANCH" = "main" ]; then
+            echo "channel=stable" >> $GITHUB_OUTPUT
+            echo "tag_suffix=${{ matrix.runtime }}" >> $GITHUB_OUTPUT
+          else
+            echo "channel=beta" >> $GITHUB_OUTPUT
+            echo "tag_suffix=beta-${SAFE_BRANCH}-${{ matrix.runtime }}" >> $GITHUB_OUTPUT
+          fi
+
       - name: Log in to GitHub Container Registry
+        if: github.event_name == 'push'
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GHCR_PAT }}
 
-      # Build and push Docker image
       - name: Build and Push Docker Image
+        if: github.event_name == 'push'
         run: |
           docker buildx create --use
           docker buildx build \
@@ -52,12 +67,14 @@ jobs:
             --build-arg PLATFORM=${{ matrix.runtime }} \
             --provenance false \
             -f ./EventHorizon/Dockerfile \
-            -t ghcr.io/rafmon/eventhorizon:${{ matrix.runtime }} \
+            -t ghcr.io/rafmon/eventhorizon:${{ steps.tags.outputs.tag_suffix }} \
             --push .
-  
+
   create-and-push-manifest:
     runs-on: ubuntu-latest
     needs: [build-and-push]
+    if: github.event_name == 'push'   
+
     steps:
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v3
@@ -65,12 +82,30 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GHCR_PAT }}
-    
+
+      - name: Compute manifest target tag
+        id: manifest
+        shell: bash
+        run: |
+          BRANCH="${GITHUB_REF_NAME}"
+          SAFE_BRANCH="$(echo "$BRANCH" | tr '/@' '--' | tr -cd '[:alnum:]._-' )"
+
+          if [ "$BRANCH" = "main" ]; then
+            echo "manifest_tag=latest" >> $GITHUB_OUTPUT
+            echo "img1=ghcr.io/rafmon/eventhorizon:linux-x64" >> $GITHUB_OUTPUT
+            echo "img2=ghcr.io/rafmon/eventhorizon:linux-arm64" >> $GITHUB_OUTPUT
+            echo "img3=ghcr.io/rafmon/eventhorizon:linux-arm" >> $GITHUB_OUTPUT
+          else
+            echo "manifest_tag=beta-${SAFE_BRANCH}" >> $GITHUB_OUTPUT
+            echo "img1=ghcr.io/rafmon/eventhorizon:beta-${SAFE_BRANCH}-linux-x64" >> $GITHUB_OUTPUT
+            echo "img2=ghcr.io/rafmon/eventhorizon:beta-${SAFE_BRANCH}-linux-arm64" >> $GITHUB_OUTPUT
+            echo "img3=ghcr.io/rafmon/eventhorizon:beta-${SAFE_BRANCH}-linux-arm" >> $GITHUB_OUTPUT
+          fi
+
       - name: Create and push multi-arch manifest
         run: |
-          docker manifest create ghcr.io/rafmon/eventhorizon:latest \
-            --amend ghcr.io/rafmon/eventhorizon:linux-x64 \
-            --amend ghcr.io/rafmon/eventhorizon:linux-arm64 \
-            --amend ghcr.io/rafmon/eventhorizon:linux-arm
-          docker manifest push ghcr.io/rafmon/eventhorizon:latest
-
+          docker manifest create ghcr.io/rafmon/eventhorizon:${{ steps.manifest.outputs.manifest_tag }} \
+            --amend ${{ steps.manifest.outputs.img1 }} \
+            --amend ${{ steps.manifest.outputs.img2 }} \
+            --amend ${{ steps.manifest.outputs.img3 }}
+          docker manifest push ghcr.io/rafmon/eventhorizon:${{ steps.manifest.outputs.manifest_tag }}
