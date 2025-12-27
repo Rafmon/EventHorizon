@@ -1,29 +1,16 @@
 ﻿using EventHorizon.src.Memory;
-using System.Runtime.InteropServices;
 using Microsoft.EntityFrameworkCore;
-using EventHorizon.src.Util;
 
 public class MemoryController
 {
     private Dictionary<int, MemoryAddress> Addresses;
     private readonly IServiceScopeFactory _scopeFactory;
-    private readonly SettingsManager _settings;
-
-    public MemoryController(IServiceScopeFactory scopeFactory, SettingsManager settings)
+    public MemoryController(IServiceScopeFactory scopeFactory)
     {
         Console.WriteLine("Starting Memory");
         _scopeFactory = scopeFactory;
-        _settings = settings;
 
         Addresses = new Dictionary<int, MemoryAddress>(128);
-
-        if (!(RuntimeInformation.IsOSPlatform(OSPlatform.Linux) &&
-            (RuntimeInformation.ProcessArchitecture == Architecture.Arm ||
-            RuntimeInformation.ProcessArchitecture == Architecture.Arm64)))
-        {
-            Console.WriteLine("GPIO/I2C not supported on this platform. Simulating devices...");
-            _settings.SimulateI2CDevices = true;
-        }
         genrateAddresses();
 
         Console.WriteLine("finished initializing Memory addresses");
@@ -33,7 +20,7 @@ public class MemoryController
     {
         for (int i = 0; i < 8; i++)
         {
-            IMemoryDevice dev = new DynamicMemoryDevice(1, 32 + i, !_settings.SimulateI2CDevices);
+            IMemoryDevice dev = new DynamicMemoryDevice(1, 32 + i, false);
             generateMemoryAddr(i, dev);
         }
     }

@@ -94,6 +94,8 @@
 
     private string GetStatusLabel(MemoryAddress memoryAddress)
     {
-        return memoryAddress.IsDeviceConnected ? "Connected" : "Simulated";
+        return memoryAddress.IsDeviceConnected
+            ? I18n.Translate("MemoryStatusConnected")
+            : I18n.Translate("MemoryStatusSimulated");
     }
 }
