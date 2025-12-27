@@ -11,7 +11,7 @@ body {
     padding: 0;
 }
 
-/* Passt die Abstände innerhalb des Artikels an */
+/* Passt die Abstnde innerhalb des Artikels an */
 .content article {
     padding-top: 0;
     margin-top: 0;
@@ -20,7 +20,7 @@ body {
 
 /* Entfernt den Leerraum unter der Navigation */
 .sidebar {
-    padding-top: 0; /* Entfernt zusätzliches Padding */
+    padding-top: 0; /* Entfernt zustzliches Padding */
 }
 
 /* Hauptinhalt */
@@ -56,7 +56,7 @@ main {
     width: 100%; /* Volle Breite */
 }
 
-    /* Entfernt unnötige Box-Styles um die Controls */
+    /* Entfernt unntige Box-Styles um die Controls */
     .top-row .d-flex {
         flex: 1;
     }
@@ -83,7 +83,7 @@ main {
             box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25);
         }
 
-/* Entfernt unnötige Padding */
+/* Entfernt unntige Padding */
 .content {
     padding: 1rem;
 }
@@ -194,6 +194,30 @@ input:checked + .slider:before {
     .slider.round:before {
         border-radius: 50%;
     }
+
+
+.memory-status {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 999px;
+    margin-right: 0.35rem;
+    vertical-align: middle;
+}
+
+.memory-status--connected {
+    background-color: #28a745;
+}
+
+.memory-status--simulated {
+    background-color: #0d6efd;
+}
+
+.memory-status-label {
+    font-size: 0.85rem;
+    margin-right: 0.75rem;
+    vertical-align: middle;
+}
 
 /* Selected style */
 .selected {

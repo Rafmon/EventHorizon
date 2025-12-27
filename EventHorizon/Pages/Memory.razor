@@ -11,6 +11,11 @@
     @foreach (var memoryAddressEntry in MemoryController.GetMemoryAddresses())
     {
         <li>
+            @{ memoryAddressEntry.Value.RefreshDeviceStatus(); }
+
+            <span class="@GetStatusClass(memoryAddressEntry.Value)"
+                  title="@GetStatusLabel(memoryAddressEntry.Value)"></span>
+            <span class="memory-status-label">@GetStatusLabel(memoryAddressEntry.Value)</span>
 
             <!-- checkbox for active/inactive -->
             <label class="switch">
@@ -78,5 +83,17 @@
             memoryAddress.Name = MemoryAddressOldName;
         }
         MemoryAddressOldName = string.Empty;
+    }
+
+    private string GetStatusClass(MemoryAddress memoryAddress)
+    {
+        return memoryAddress.IsDeviceConnected
+            ? "memory-status memory-status--connected"
+            : "memory-status memory-status--simulated";
+    }
+
+    private string GetStatusLabel(MemoryAddress memoryAddress)
+    {
+        return memoryAddress.IsDeviceConnected ? "Connected" : "Simulated";
     }
 }

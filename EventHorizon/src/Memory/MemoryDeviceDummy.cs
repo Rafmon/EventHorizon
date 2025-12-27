@@ -1,5 +1,4 @@
 ﻿using System;
-using Iot.Device.Mcp23xxx;
 
 namespace EventHorizon.src.Memory
 {
@@ -18,6 +17,9 @@ namespace EventHorizon.src.Memory
 
 			Console.WriteLine(Id + " is now: " + IsActive);
         }
+
+        public bool IsConnected => false;
+
+        public bool IsSimulated => true;
     }
 }
-

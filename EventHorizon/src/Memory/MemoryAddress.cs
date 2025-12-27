@@ -16,6 +16,10 @@ public class MemoryAddress
     public bool IsActive { get; set; }
     [NotMapped]
     public bool IsEditing { get; set; } = false;
+    [NotMapped]
+    public bool IsDeviceConnected { get; private set; }
+    [NotMapped]
+    public bool IsDeviceSimulated { get; private set; }
 
     /// <summary>
     /// constructor for EF not for normal use.
@@ -30,17 +34,27 @@ public class MemoryAddress
         Device = dev;
         Name = Device.GetType().Name + "" + addr.ToString();
         IsActive = Device.GetIsActive(Address);
+        RefreshDeviceStatus();
     }
 
     public void Update(bool isActive)
     {
         this.IsActive = isActive;
         Device.UpdatePin(Address, isActive);
+        RefreshDeviceStatus();
     }
 
     public bool GetActivationStatus()
-    { return Device.GetIsActive(Address); }
+    {
+        RefreshDeviceStatus();
+        return Device.GetIsActive(Address);
+    }
+
+    public void RefreshDeviceStatus()
+    {
+        IsDeviceConnected = Device.IsConnected;
+        IsDeviceSimulated = Device.IsSimulated;
+    }
 
 }
-
 

@@ -1,11 +1,6 @@
 ﻿using EventHorizon.src.Memory;
-using Iot.Device.Mcp23xxx;
-using System.Collections;
-using System.Device.I2c;
 using System.Runtime.InteropServices;
-using static System.Formats.Asn1.AsnWriter;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Metadata.Internal;
 using EventHorizon.src.Util;
 
 public class MemoryController
@@ -38,25 +33,8 @@ public class MemoryController
     {
         for (int i = 0; i < 8; i++)
         {
-            try
-            {
-                IMemoryDevice dev;
-                I2cConnectionSettings cset = new I2cConnectionSettings(1, 32 + i);
-                I2cDevice idev = I2cDevice.Create(cset);
-                Mcp23017 mcp23017 = new Mcp23017(idev);
-                mcp23017.WriteByte(Register.IODIR, 0b0000_0000, Port.PortA);
-                mcp23017.WriteByte(Register.IODIR, 0b0000_0000, Port.PortB);
-
-                dev = new MemoryDevice(mcp23017);
-                generateMemoryAddr(i, dev);
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine("Creating dummy device for address " + (32 + i));
-                generateMemoryAddr(i, new MemoryDeviceDummy());
-
-
-            }
+            IMemoryDevice dev = new DynamicMemoryDevice(1, 32 + i, !_settings.SimulateI2CDevices);
+            generateMemoryAddr(i, dev);
         }
     }
 

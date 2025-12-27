@@ -41,6 +41,9 @@ namespace EventHorizon.src.Memory
             return Values.Get(ID % 16);
 
 		}
+
+        public bool IsConnected => true;
+
+        public bool IsSimulated => false;
 	}
 }
-
