@@ -14,7 +14,9 @@
 
             <!-- checkbox for active/inactive -->
             <label class="switch">
-                <input type="checkbox" @bind="memoryAddressEntry.Value.IsActive" @onclick="() => memoryAddressEntry.Value.Update(memoryAddressEntry.Value.IsActive)">
+                <input type="checkbox"
+                       @bind="memoryAddressEntry.Value.IsActive"
+                       @bind:after="() => memoryAddressEntry.Value.Update(memoryAddressEntry.Value.IsActive)">
                 <span class="slider round"></span>
             </label>
 
