@@ -28,7 +28,7 @@ public class MemoryAddress
     {
         Address = addr;
         Device = dev;
-        Name = Device.GetType().Name + "" + addr.ToString();
+        Name = string.Empty;
         IsActive = Device.GetIsActive(Address);
     }
 
@@ -42,5 +42,4 @@ public class MemoryAddress
     { return Device.GetIsActive(Address); }
 
 }
-
 
