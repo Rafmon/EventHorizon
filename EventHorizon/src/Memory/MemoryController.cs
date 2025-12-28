@@ -79,11 +79,20 @@ public class MemoryController
             if (existingAddress != null)
             {
                 existingAddress.Device = dev;
+                if (string.IsNullOrWhiteSpace(existingAddress.Name))
+                {
+                    existingAddress.Name = $"Device {i + 1}";
+                }
                 Addresses.Add(addr, existingAddress);
             }
             else
             {
-                Addresses.Add(addr, new MemoryAddress(addr, dev));
+                var memoryAddress = new MemoryAddress(addr, dev);
+                if (string.IsNullOrWhiteSpace(memoryAddress.Name))
+                {
+                    memoryAddress.Name = $"Device {i + 1}";
+                }
+                Addresses.Add(addr, memoryAddress);
             }
         }
     }
