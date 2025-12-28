@@ -1,0 +1,3 @@
+services:
+  eventhorizon:
+    image: ghcr.io/rafmon/eventhorizon:beta
