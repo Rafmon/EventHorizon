@@ -32,7 +32,7 @@ public class MemoryAddress
     {
         Address = addr;
         Device = dev;
-        Name = Device.GetType().Name + "" + addr.ToString();
+        Name = string.Empty;
         IsActive = Device.GetIsActive(Address);
         RefreshDeviceStatus();
     }
@@ -49,12 +49,4 @@ public class MemoryAddress
         RefreshDeviceStatus();
         return Device.GetIsActive(Address);
     }
-
-    public void RefreshDeviceStatus()
-    {
-        IsDeviceConnected = Device.IsConnected;
-        IsDeviceSimulated = Device.IsSimulated;
-    }
-
-}
 
