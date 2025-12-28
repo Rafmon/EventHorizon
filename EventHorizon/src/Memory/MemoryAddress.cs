@@ -9,7 +9,7 @@ public class MemoryAddress
     [Key]
     public int Address { get; protected set; }
     public String Name { get; set; }
-    
+
     [NotMapped]
     public IMemoryDevice Device;
     [NotMapped]
@@ -50,3 +50,4 @@ public class MemoryAddress
         return Device.GetIsActive(Address);
     }
 
+}
