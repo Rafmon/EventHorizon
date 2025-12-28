@@ -31,6 +31,13 @@
     </div>
     <br />
     <div class="row mb-3">
+        <label for="invertMemoryOutputs" class="col-sm-3 col-form-label">@I18n.Translate("InvertMemoryOutputsLabel")</label>
+        <div class="col-sm-2">
+            <InputCheckbox @bind-Value="Settings.InvertMemoryOutputs" class="form-check-input" id="invertMemoryOutputs" />
+        </div>
+    </div>
+    <br />
+    <div class="row mb-3">
         <div class="col-sm-3">
             <button type="button" class="btn btn-primary" @onclick="ExportEvents">@I18n.Translate("ExportEventsButton")</button>
             <br />

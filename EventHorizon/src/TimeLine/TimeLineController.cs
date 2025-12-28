@@ -7,7 +7,7 @@ public class TimeLineController
     private readonly EventManager _eventManager;
     private readonly MemoryController _memoryController;
     private readonly SettingsManager _settingsManager;
-    public Stack<TimeLineEvent> TimeLineEvents { get; set; }
+    public Queue<TimeLineEvent> TimeLineEvents { get; set; }
     List<TimeLineEvent> UpcomingTimeLineEvents { get; set; }
     public int Duration { get; set; }
     public int currentTime = 0;
@@ -23,7 +23,7 @@ public class TimeLineController
         Duration = _settingsManager.TimelineDuration;
         CurrentPlayState = TimeLinePlayState.Play;
 
-        TimeLineEvents = new Stack<TimeLineEvent>();
+        TimeLineEvents = new Queue<TimeLineEvent>();
         UpcomingTimeLineEvents = new List<TimeLineEvent>();
         GenerateTimeLine();
         Reset();
@@ -43,13 +43,10 @@ public class TimeLineController
 
                 if (currentTime <= Duration)
                 {
-                    if (TimeLineEvents.Count > 0)
+                    while (TimeLineEvents.Count > 0 && TimeLineEvents.Peek().ExecutionTime <= currentTime)
                     {
-                        while (TimeLineEvents.Count > 0 && TimeLineEvents.Peek().ExecutionTime <= currentTime)
-                        {
-                            TimeLineEvents.Peek().Address.Update(TimeLineEvents.Peek().IsActive);
-                            TimeLineEvents.Pop();
-                        }
+                        var timeLineEvent = TimeLineEvents.Dequeue();
+                        timeLineEvent.Address.Update(timeLineEvent.IsActive);
                     }
                 }
                 else
@@ -101,7 +98,7 @@ public class TimeLineController
 
     private void Reset()
     {
-        TimeLineEvents = new Stack<TimeLineEvent>(UpcomingTimeLineEvents);
+        TimeLineEvents = new Queue<TimeLineEvent>(UpcomingTimeLineEvents);
         UpcomingTimeLineEvents = new List<TimeLineEvent>();
         GenerateTimeLine();
         currentTime = 0;

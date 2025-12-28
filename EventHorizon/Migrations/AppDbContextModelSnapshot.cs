@@ -58,6 +58,9 @@ namespace EventHorizon.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
+                    b.Property<bool>("InvertMemoryOutputs")
+                        .HasColumnType("INTEGER");
+
                     b.Property<bool>("SimulateI2CDevices")
                         .HasColumnType("INTEGER");
 

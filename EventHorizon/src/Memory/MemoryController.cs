@@ -47,7 +47,7 @@ public class MemoryController
                 mcp23017.WriteByte(Register.IODIR, 0b0000_0000, Port.PortA);
                 mcp23017.WriteByte(Register.IODIR, 0b0000_0000, Port.PortB);
 
-                dev = new MemoryDevice(mcp23017);
+                dev = new MemoryDevice(mcp23017, _settings.InvertMemoryOutputs);
                 generateMemoryAddr(i, dev);
             }
             catch (Exception ex)
@@ -56,7 +56,7 @@ public class MemoryController
                 if (_settings.SimulateI2CDevices)
                 {
                     Console.WriteLine("Creating dummy device for address " + (32 + i));
-                    generateMemoryAddr(i, new MemoryDeviceDummy());
+                    generateMemoryAddr(i, new MemoryDeviceDummy(_settings.InvertMemoryOutputs));
                 }
                 else
                 {

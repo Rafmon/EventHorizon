@@ -29,7 +29,7 @@ namespace EventHorizon.src.TimeLine
                 return 1;
 
             else
-                return ExecutionTime <= other.ExecutionTime ? 1 : -1;
+                return ExecutionTime.CompareTo(other.ExecutionTime);
         }
 
         public override int GetHashCode()
@@ -51,4 +51,3 @@ namespace EventHorizon.src.TimeLine
         }
     }
 }
-
