@@ -9,6 +9,7 @@ namespace EventHorizon.src.Util
 
 
         public bool SimulateI2CDevices { get; set; } = false;
+        public bool InvertMemoryOutputs { get; set; } = false;
         public int TimelineDuration { get; set; } = 180;
 
         public SettingsManager(IServiceScopeFactory scopeFactory)
@@ -38,6 +39,7 @@ namespace EventHorizon.src.Util
                 {
                     Id = 1,
                     SimulateI2CDevices = SimulateI2CDevices,
+                    InvertMemoryOutputs = InvertMemoryOutputs,
                     TimelineDuration = TimelineDuration
                 };
                 dbContext.Settings.Add(settingsEntity);
@@ -45,6 +47,7 @@ namespace EventHorizon.src.Util
             else
             {
                 settingsEntity.SimulateI2CDevices = SimulateI2CDevices;
+                settingsEntity.InvertMemoryOutputs = InvertMemoryOutputs;
                 settingsEntity.TimelineDuration = TimelineDuration;
                 dbContext.Settings.Update(settingsEntity);
             }
@@ -63,6 +66,7 @@ namespace EventHorizon.src.Util
             if (settingsEntity != null)
             {
                 SimulateI2CDevices = settingsEntity.SimulateI2CDevices;
+                InvertMemoryOutputs = settingsEntity.InvertMemoryOutputs;
                 TimelineDuration = settingsEntity.TimelineDuration;
                 Console.WriteLine("Settings loaded.");
             }

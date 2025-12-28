@@ -23,6 +23,7 @@
 
   "TimelineDurationLabel": "Dauer der Timeline in Sekunden",
   "SimulateI2CLabel": "Simulate I2C Devices",
+  "InvertMemoryOutputsLabel": "Memory-Ausgänge invertieren",
   "ExportEventsButton": "Exportiere events.json",
   "ImportEventsLabel": "Importiere Events",
 

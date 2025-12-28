@@ -8,16 +8,18 @@ namespace EventHorizon.src.Memory
     {
         private Mcp23017 Dev;
         private BitArray Values = new BitArray(16);
+        private readonly bool _invertOutputs;
 
-        public MemoryDevice(Mcp23017 device)
+        public MemoryDevice(Mcp23017 device, bool invertOutputs)
         {
             Dev = device;
             Values.SetAll(false);
+            _invertOutputs = invertOutputs;
            
         }
         public void UpdatePin(int Id, bool IsActive)
         {
-            Values.Set(Id % 16, IsActive);
+            Values.Set(Id % 16, GetHardwareState(IsActive));
             updatePins();
         }
 
@@ -38,9 +40,18 @@ namespace EventHorizon.src.Memory
 
 		public bool GetIsActive(int ID)
 		{
-            return Values.Get(ID % 16);
+            return GetLogicalState(Values.Get(ID % 16));
 
 		}
+
+        private bool GetHardwareState(bool isActive)
+        {
+            return _invertOutputs ? !isActive : isActive;
+        }
+
+        private bool GetLogicalState(bool isActive)
+        {
+            return _invertOutputs ? !isActive : isActive;
+        }
 	}
 }
-
