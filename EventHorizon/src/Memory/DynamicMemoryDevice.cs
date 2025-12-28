@@ -10,18 +10,15 @@ namespace EventHorizon.src.Memory
         private readonly int _busId;
         private readonly int _deviceAddress;
         private readonly bool _allowHardware;
-        private readonly TimeSpan _reconnectDelay;
         private readonly BitArray _values = new BitArray(16);
-        private DateTimeOffset _lastReconnectAttempt = DateTimeOffset.MinValue;
         private Mcp23017? _device;
         private I2cDevice? _i2cDevice;
 
-        public DynamicMemoryDevice(int busId, int deviceAddress, bool allowHardware, TimeSpan? reconnectDelay = null)
+        public DynamicMemoryDevice(int busId, int deviceAddress, bool allowHardware)
         {
             _busId = busId;
             _deviceAddress = deviceAddress;
             _allowHardware = allowHardware;
-            _reconnectDelay = reconnectDelay ?? TimeSpan.FromSeconds(3);
 
             if (_allowHardware)
             {
@@ -44,7 +41,17 @@ namespace EventHorizon.src.Memory
 
             if (!IsConnected)
             {
-                TryReconnectIfDue();
+                if (TryInitializeDevice())
+                {
+                    try
+                    {
+                        WriteCurrentValues();
+                    }
+                    catch (Exception)
+                    {
+                        MarkDisconnected();
+                    }
+                }
                 return;
             }
 
@@ -61,28 +68,6 @@ namespace EventHorizon.src.Memory
         public bool GetIsActive(int id)
         {
             return _values.Get(id % 16);
-        }
-
-        private void TryReconnectIfDue()
-        {
-            var now = DateTimeOffset.UtcNow;
-            if (now - _lastReconnectAttempt < _reconnectDelay)
-            {
-                return;
-            }
-
-            _lastReconnectAttempt = now;
-            if (TryInitializeDevice())
-            {
-                try
-                {
-                    WriteCurrentValues();
-                }
-                catch (Exception)
-                {
-                    MarkDisconnected();
-                }
-            }
         }
 
         private bool TryInitializeDevice()
