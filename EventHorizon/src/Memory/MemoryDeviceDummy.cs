@@ -11,6 +11,7 @@ namespace EventHorizon.src.Memory
         public MemoryDeviceDummy(bool invertOutputs)
         {
             _invertOutputs = invertOutputs;
+            IsActive = _invertOutputs ? true : false;
         }
 
 		public bool GetIsActive(int ID)

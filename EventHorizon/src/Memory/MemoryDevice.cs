@@ -13,8 +13,8 @@ namespace EventHorizon.src.Memory
         public MemoryDevice(Mcp23017 device, bool invertOutputs)
         {
             Dev = device;
-            Values.SetAll(false);
             _invertOutputs = invertOutputs;
+            Values.SetAll(GetHardwareState(false));
            
         }
         public void UpdatePin(int Id, bool IsActive)
