@@ -47,21 +47,20 @@ jobs:
             echo "channel=beta" >> $GITHUB_OUTPUT
           fi
 
-      - name: Compute build tag (channel-title-sha)
+      - name: Compute build tag (channel-branch-sha)
         id: buildtag
         shell: bash
         run: |
-          CHANNEL="${{ steps.channel.outputs.channel }}"
-
-          COMMIT_TITLE="$(git log -1 --pretty=%s)"
-
-          TITLE_SAFE="$(echo "$COMMIT_TITLE" | tr '[:upper:]' '[:lower:]' | tr ' ' '-' | tr -cd '[:alnum:]._-' )"
-
+          BRANCH_SAFE="$(echo "${GITHUB_REF_NAME}" | tr '/@' '--' | tr -cd '[:alnum:]._-' )"
           SHORT_SHA="${GITHUB_SHA::7}"
 
-          FULL_TAG="${CHANNEL}-${TITLE_SAFE}-${SHORT_SHA}"
+          if [ "${GITHUB_REF_NAME}" = "main" ]; then
+             CHANNEL="latest"
+          else
+            CHANNEL="beta"
+          fi
 
-          echo "full_tag=$FULL_TAG" >> $GITHUB_OUTPUT
+          echo "full_tag=${CHANNEL}-${BRANCH_SAFE}-${SHORT_SHA}" >> $GITHUB_OUTPUT
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -84,7 +83,7 @@ jobs:
             --build-arg BUILD_TAG="${{ steps.buildtag.outputs.full_tag }}" \
             --provenance false \
             -f ./EventHorizon/Dockerfile \
-            -t ghcr.io/rafmon/eventhorizon:${{ steps.channel.outputs.channel }}-${{ matrix.runtime }} \
+            -t ghcr.io/rafmon/eventhorizon:${CHANNEL}-${{ matrix.runtime }} \
             -t ghcr.io/rafmon/eventhorizon:${{ steps.buildtag.outputs.full_tag }}-${{ matrix.runtime }} \
             --push .
 
@@ -103,14 +102,20 @@ jobs:
             echo "channel=beta" >> $GITHUB_OUTPUT
           fi
 
-      - name: Compute build tag (channel-title-sha)
+      - name: Compute build tag (channel-branch-sha)
         id: buildtag
         shell: bash
         run: |
-          COMMIT_TITLE="$(git log -1 --pretty=%s)"
-          TITLE_SAFE="$(echo "$COMMIT_TITLE" | tr '[:upper:]' '[:lower:]' | tr ' ' '-' | tr -cd '[:alnum:]._-' )"
+          BRANCH_SAFE="$(echo "${GITHUB_REF_NAME}" | tr '/@' '--' | tr -cd '[:alnum:]._-' )"
           SHORT_SHA="${GITHUB_SHA::7}"
-          echo "full_tag=${{ steps.channel.outputs.channel }}-${TITLE_SAFE}-${SHORT_SHA}" >> $GITHUB_OUTPUT
+
+          if [ "${GITHUB_REF_NAME}" = "main" ]; then
+             CHANNEL="latest"
+          else
+            CHANNEL="beta"
+          fi
+
+          echo "full_tag=${CHANNEL}-${BRANCH_SAFE}-${SHORT_SHA}" >> $GITHUB_OUTPUT
 
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v3
@@ -121,12 +126,14 @@ jobs:
 
       - name: Push moving and fixed manifests
         run: |
-          docker manifest create ghcr.io/rafmon/eventhorizon:${{ steps.channel.outputs.channel }} \
-            --amend ghcr.io/rafmon/eventhorizon:${{ steps.channel.outputs.channel }}-linux-x64 \
-            --amend ghcr.io/rafmon/eventhorizon:${{ steps.channel.outputs.channel }}-linux-arm64 \
-            --amend ghcr.io/rafmon/eventhorizon:${{ steps.channel.outputs.channel }}-linux-arm
-          docker manifest push ghcr.io/rafmon/eventhorizon:${{ steps.channel.outputs.channel }}
+          # moving
+          docker manifest create ghcr.io/rafmon/eventhorizon:${CHANNEL} \
+            --amend ghcr.io/rafmon/eventhorizon:${CHANNEL}-linux-x64 \
+            --amend ghcr.io/rafmon/eventhorizon:${CHANNEL}-linux-arm64 \
+            --amend ghcr.io/rafmon/eventhorizon:${CHANNEL}-linux-arm
+          docker manifest push ghcr.io/rafmon/eventhorizon:${CHANNEL}
 
+          # fixed
           docker manifest create ghcr.io/rafmon/eventhorizon:${{ steps.buildtag.outputs.full_tag }} \
             --amend ghcr.io/rafmon/eventhorizon:${{ steps.buildtag.outputs.full_tag }}-linux-x64 \
             --amend ghcr.io/rafmon/eventhorizon:${{ steps.buildtag.outputs.full_tag }}-linux-arm64 \
