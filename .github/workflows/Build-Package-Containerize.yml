@@ -53,13 +53,7 @@ jobs:
         run: |
           BRANCH_SAFE="$(echo "${GITHUB_REF_NAME}" | tr '/@' '--' | tr -cd '[:alnum:]._-' )"
           SHORT_SHA="${GITHUB_SHA::7}"
-
-          if [ "${GITHUB_REF_NAME}" = "main" ]; then
-             CHANNEL="latest"
-          else
-            CHANNEL="beta"
-          fi
-
+          CHANNEL="${{ steps.channel.outputs.channel }}"
           echo "full_tag=${CHANNEL}-${BRANCH_SAFE}-${SHORT_SHA}" >> $GITHUB_OUTPUT
 
       - name: Set up QEMU
@@ -75,16 +69,19 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GHCR_PAT }}
 
-      - name: Build and push arch images (with fixed tag)
+      - name: Build and push arch images (moving + fixed tag)
         run: |
+          CHANNEL="${{ steps.channel.outputs.channel }}"
+          FIXED="${{ steps.buildtag.outputs.full_tag }}"
+
           docker buildx build \
             --platform ${{ matrix.platform }} \
             --build-arg PLATFORM=${{ matrix.runtime }} \
-            --build-arg BUILD_TAG="${{ steps.buildtag.outputs.full_tag }}" \
+            --build-arg BUILD_TAG="${FIXED}" \
             --provenance false \
             -f ./EventHorizon/Dockerfile \
             -t ghcr.io/rafmon/eventhorizon:${CHANNEL}-${{ matrix.runtime }} \
-            -t ghcr.io/rafmon/eventhorizon:${{ steps.buildtag.outputs.full_tag }}-${{ matrix.runtime }} \
+            -t ghcr.io/rafmon/eventhorizon:${FIXED}-${{ matrix.runtime }} \
             --push .
 
   create-and-push-manifest:
@@ -108,13 +105,7 @@ jobs:
         run: |
           BRANCH_SAFE="$(echo "${GITHUB_REF_NAME}" | tr '/@' '--' | tr -cd '[:alnum:]._-' )"
           SHORT_SHA="${GITHUB_SHA::7}"
-
-          if [ "${GITHUB_REF_NAME}" = "main" ]; then
-             CHANNEL="latest"
-          else
-            CHANNEL="beta"
-          fi
-
+          CHANNEL="${{ steps.channel.outputs.channel }}"
           echo "full_tag=${CHANNEL}-${BRANCH_SAFE}-${SHORT_SHA}" >> $GITHUB_OUTPUT
 
       - name: Log in to GitHub Container Registry
@@ -126,16 +117,19 @@ jobs:
 
       - name: Push moving and fixed manifests
         run: |
-          # moving
+          CHANNEL="${{ steps.channel.outputs.channel }}"
+          FIXED="${{ steps.buildtag.outputs.full_tag }}"
+
+          # moving manifest (beta oder latest)
           docker manifest create ghcr.io/rafmon/eventhorizon:${CHANNEL} \
             --amend ghcr.io/rafmon/eventhorizon:${CHANNEL}-linux-x64 \
             --amend ghcr.io/rafmon/eventhorizon:${CHANNEL}-linux-arm64 \
             --amend ghcr.io/rafmon/eventhorizon:${CHANNEL}-linux-arm
           docker manifest push ghcr.io/rafmon/eventhorizon:${CHANNEL}
 
-          # fixed
-          docker manifest create ghcr.io/rafmon/eventhorizon:${{ steps.buildtag.outputs.full_tag }} \
-            --amend ghcr.io/rafmon/eventhorizon:${{ steps.buildtag.outputs.full_tag }}-linux-x64 \
-            --amend ghcr.io/rafmon/eventhorizon:${{ steps.buildtag.outputs.full_tag }}-linux-arm64 \
-            --amend ghcr.io/rafmon/eventhorizon:${{ steps.buildtag.outputs.full_tag }}-linux-arm
-          docker manifest push ghcr.io/rafmon/eventhorizon:${{ steps.buildtag.outputs.full_tag }}
+          # fixed manifest (channel-branch-sha)
+          docker manifest create ghcr.io/rafmon/eventhorizon:${FIXED} \
+            --amend ghcr.io/rafmon/eventhorizon:${FIXED}-linux-x64 \
+            --amend ghcr.io/rafmon/eventhorizon:${FIXED}-linux-arm64 \
+            --amend ghcr.io/rafmon/eventhorizon:${FIXED}-linux-arm
+          docker manifest push ghcr.io/rafmon/eventhorizon:${FIXED}
