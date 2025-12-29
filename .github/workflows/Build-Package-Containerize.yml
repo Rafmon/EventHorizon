@@ -3,16 +3,14 @@ name: Build and Push Multi-Platform Docker Images
 on:
   push:
     branches:
-      - '**'     
-  pull_request:
-    branches:
-      - main
+      - "**"
 
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
 
     strategy:
+      fail-fast: false
       matrix:
         include:
           - platform: linux/amd64
@@ -24,58 +22,96 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set up .NET SDK
-        uses: actions/setup-dotnet@v3
+        uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '8.0.x'
+          dotnet-version: "8.0.x"
 
       - name: Build and Package Application
         run: |
-          dotnet publish ./EventHorizon/EventHorizon.csproj -c Release -r ${{ matrix.runtime }} --self-contained false -o ./output/${{ matrix.runtime }}
+          dotnet publish ./EventHorizon/EventHorizon.csproj \
+            -c Release \
+            -r ${{ matrix.runtime }} \
+            --self-contained false \
+            -o ./output/${{ matrix.runtime }}
 
-      - name: Compute image tags
-        id: tags
+      - name: Determine channel
+        id: channel
         shell: bash
         run: |
-          BRANCH="${GITHUB_REF_NAME}"
-          SAFE_BRANCH="$(echo "$BRANCH" | tr '/@' '--' | tr -cd '[:alnum:]._-' )"
-
-          if [ "$BRANCH" = "main" ]; then
-            echo "channel=stable" >> $GITHUB_OUTPUT
-            echo "tag_suffix=${{ matrix.runtime }}" >> $GITHUB_OUTPUT
+          if [ "${GITHUB_REF_NAME}" = "main" ]; then
+            echo "channel=latest" >> $GITHUB_OUTPUT
           else
             echo "channel=beta" >> $GITHUB_OUTPUT
-            echo "tag_suffix=beta-${SAFE_BRANCH}-${{ matrix.runtime }}" >> $GITHUB_OUTPUT
           fi
 
+      - name: Compute build tag (channel-title-sha)
+        id: buildtag
+        shell: bash
+        run: |
+          CHANNEL="${{ steps.channel.outputs.channel }}"
+
+          COMMIT_TITLE="$(git log -1 --pretty=%s)"
+
+          TITLE_SAFE="$(echo "$COMMIT_TITLE" | tr '[:upper:]' '[:lower:]' | tr ' ' '-' | tr -cd '[:alnum:]._-' )"
+
+          SHORT_SHA="${GITHUB_SHA::7}"
+
+          FULL_TAG="${CHANNEL}-${TITLE_SAFE}-${SHORT_SHA}"
+
+          echo "full_tag=$FULL_TAG" >> $GITHUB_OUTPUT
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
       - name: Log in to GitHub Container Registry
-        if: github.event_name == 'push'
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GHCR_PAT }}
 
-      - name: Build and Push Docker Image
-        if: github.event_name == 'push'
+      - name: Build and push arch images (with fixed tag)
         run: |
-          docker buildx create --use
           docker buildx build \
             --platform ${{ matrix.platform }} \
             --build-arg PLATFORM=${{ matrix.runtime }} \
+            --build-arg BUILD_TAG="${{ steps.buildtag.outputs.full_tag }}" \
             --provenance false \
             -f ./EventHorizon/Dockerfile \
-            -t ghcr.io/rafmon/eventhorizon:${{ steps.tags.outputs.tag_suffix }} \
+            -t ghcr.io/rafmon/eventhorizon:${{ steps.channel.outputs.channel }}-${{ matrix.runtime }} \
+            -t ghcr.io/rafmon/eventhorizon:${{ steps.buildtag.outputs.full_tag }}-${{ matrix.runtime }} \
             --push .
 
   create-and-push-manifest:
     runs-on: ubuntu-latest
     needs: [build-and-push]
-    if: github.event_name == 'push'   
 
     steps:
+      - name: Determine channel
+        id: channel
+        shell: bash
+        run: |
+          if [ "${GITHUB_REF_NAME}" = "main" ]; then
+            echo "channel=latest" >> $GITHUB_OUTPUT
+          else
+            echo "channel=beta" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Compute build tag (channel-title-sha)
+        id: buildtag
+        shell: bash
+        run: |
+          COMMIT_TITLE="$(git log -1 --pretty=%s)"
+          TITLE_SAFE="$(echo "$COMMIT_TITLE" | tr '[:upper:]' '[:lower:]' | tr ' ' '-' | tr -cd '[:alnum:]._-' )"
+          SHORT_SHA="${GITHUB_SHA::7}"
+          echo "full_tag=${{ steps.channel.outputs.channel }}-${TITLE_SAFE}-${SHORT_SHA}" >> $GITHUB_OUTPUT
+
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v3
         with:
@@ -83,29 +119,16 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GHCR_PAT }}
 
-      - name: Compute manifest target tag
-        id: manifest
-        shell: bash
+      - name: Push moving and fixed manifests
         run: |
-          BRANCH="${GITHUB_REF_NAME}"
-          SAFE_BRANCH="$(echo "$BRANCH" | tr '/@' '--' | tr -cd '[:alnum:]._-' )"
+          docker manifest create ghcr.io/rafmon/eventhorizon:${{ steps.channel.outputs.channel }} \
+            --amend ghcr.io/rafmon/eventhorizon:${{ steps.channel.outputs.channel }}-linux-x64 \
+            --amend ghcr.io/rafmon/eventhorizon:${{ steps.channel.outputs.channel }}-linux-arm64 \
+            --amend ghcr.io/rafmon/eventhorizon:${{ steps.channel.outputs.channel }}-linux-arm
+          docker manifest push ghcr.io/rafmon/eventhorizon:${{ steps.channel.outputs.channel }}
 
-          if [ "$BRANCH" = "main" ]; then
-            echo "manifest_tag=latest" >> $GITHUB_OUTPUT
-            echo "img1=ghcr.io/rafmon/eventhorizon:linux-x64" >> $GITHUB_OUTPUT
-            echo "img2=ghcr.io/rafmon/eventhorizon:linux-arm64" >> $GITHUB_OUTPUT
-            echo "img3=ghcr.io/rafmon/eventhorizon:linux-arm" >> $GITHUB_OUTPUT
-          else
-            echo "manifest_tag=beta-${SAFE_BRANCH}" >> $GITHUB_OUTPUT
-            echo "img1=ghcr.io/rafmon/eventhorizon:beta-${SAFE_BRANCH}-linux-x64" >> $GITHUB_OUTPUT
-            echo "img2=ghcr.io/rafmon/eventhorizon:beta-${SAFE_BRANCH}-linux-arm64" >> $GITHUB_OUTPUT
-            echo "img3=ghcr.io/rafmon/eventhorizon:beta-${SAFE_BRANCH}-linux-arm" >> $GITHUB_OUTPUT
-          fi
-
-      - name: Create and push multi-arch manifest
-        run: |
-          docker manifest create ghcr.io/rafmon/eventhorizon:${{ steps.manifest.outputs.manifest_tag }} \
-            --amend ${{ steps.manifest.outputs.img1 }} \
-            --amend ${{ steps.manifest.outputs.img2 }} \
-            --amend ${{ steps.manifest.outputs.img3 }}
-          docker manifest push ghcr.io/rafmon/eventhorizon:${{ steps.manifest.outputs.manifest_tag }}
+          docker manifest create ghcr.io/rafmon/eventhorizon:${{ steps.buildtag.outputs.full_tag }} \
+            --amend ghcr.io/rafmon/eventhorizon:${{ steps.buildtag.outputs.full_tag }}-linux-x64 \
+            --amend ghcr.io/rafmon/eventhorizon:${{ steps.buildtag.outputs.full_tag }}-linux-arm64 \
+            --amend ghcr.io/rafmon/eventhorizon:${{ steps.buildtag.outputs.full_tag }}-linux-arm
+          docker manifest push ghcr.io/rafmon/eventhorizon:${{ steps.buildtag.outputs.full_tag }}
