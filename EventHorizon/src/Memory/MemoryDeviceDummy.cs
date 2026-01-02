@@ -1,6 +1,6 @@
 ﻿using System;
 using Iot.Device.Mcp23xxx;
-
+ //comment
 namespace EventHorizon.src.Memory
 {
     public class MemoryDeviceDummy : IMemoryDevice
@@ -11,6 +11,7 @@ namespace EventHorizon.src.Memory
         public MemoryDeviceDummy(bool invertOutputs)
         {
             _invertOutputs = invertOutputs;
+            IsActive = _invertOutputs ? true : false;
         }
 
 		public bool GetIsActive(int ID)
